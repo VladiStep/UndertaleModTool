@@ -129,6 +129,7 @@ namespace UndertaleModTool
         {
             UndertaleCachedImageLoader.Reset();
             CachedTileDataLoader.Reset();
+
             roomCanvas?.ObjectDict.Clear();
             roomObjDict.Clear();
             sprInstDict.Clear();
@@ -2187,7 +2188,10 @@ namespace UndertaleModTool
                     tileArr[i] = new(TileCache[new(tilesBG.Texture.Name.Content, realID)], tile.Item2 * w, tile.Item3 * h, w, h, scaleX, scaleY, angle);
                 });
 
-                return tileArr;
+                if (parameter is string par && par == "Observable")
+                    return new ObservableCollection<TileRectangle>(tileArr);
+                else
+                    return tileArr;
             }
             else
                 return null;

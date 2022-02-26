@@ -7,13 +7,15 @@
                        xmlns:undertale="clr-namespace:UndertaleModLib.Models;assembly=UndertaleModLib"
                        mc:Ignorable="d" 
                        d:DesignHeight="450" d:DesignWidth="800" d:DataContext="{d:DesignInstance undertale:UndertaleRoom+Layer+LayerTilesData}" x:Name="TileLayerEditor"
-                       Loaded="TileLayerEditor_Loaded" DataContextChanged="TileLayerEditor_DataContextChanged">
+                       Loaded="TileLayerEditor_Loaded" DataContextChanged="TileLayerEditor_DataContextChanged" Unloaded="TileLayerEditor_Unloaded">
     <UserControl.Resources>
         <Style x:Key="Centered" TargetType="FrameworkElement">
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
         <local:GridConverter x:Key="GridConverter"/>
         <local:BGGeometryConverter x:Key="BGGeometryConverter"/>
+        <local:CachedTileDataLoader x:Key="CachedTileDataLoader"/>
+        <local:TileRectanglesConverter x:Key="TileRectanglesConverter"/>
     </UserControl.Resources>
     <Grid Height="{Binding RelativeSource={RelativeSource FindAncestor,
                            AncestorType={x:Type ScrollViewer}},
@@ -60,6 +62,37 @@
                         </DrawingBrush.Drawing>
                     </DrawingBrush>
                 </Canvas.Background>
+
+                <ItemsControl ItemsSource="{Binding TileRectangles, RelativeSource={RelativeSource AncestorType=local:DataUserControl}}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas Width="{Binding ParentLayer.ParentRoom.Width, Mode=OneWay}" Height="{Binding ParentLayer.ParentRoom.Height, Mode=OneWay}"
+                                    MouseDown="Canvas_MouseDown"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.Resources>
+                        <DataTemplate DataType="{x:Type local:TileRectangle}">
+                            <Rectangle Width="{Binding Width, Mode=OneTime}" Height="{Binding Height, Mode=OneTime}"
+                                       RenderTransformOrigin="0.5,0.5">
+                                <Rectangle.RenderTransform>
+                                    <TransformGroup>
+                                        <ScaleTransform x:Name="transform0_0" ScaleX="{Binding ScaleX, Mode=OneTime}" ScaleY="{Binding ScaleY, Mode=OneTime}"/>
+                                        <RotateTransform x:Name="transform0_1" Angle="{Binding Angle, Mode=OneTime}"/>
+                                        <TranslateTransform x:Name="transform0_2" X="{Binding X, Mode=OneTime}" Y="{Binding Y, Mode=OneTime}"/>
+                                    </TransformGroup>
+                                </Rectangle.RenderTransform>
+                                <Rectangle.Fill>
+                                    <ImageBrush
+                                        x:Name="TileImageSource"
+                                        ImageSource="{Binding ImageSrc, Mode=OneTime}"
+                                        TileMode="None"
+                                        Stretch="UniformToFill">
+                                    </ImageBrush>
+                                </Rectangle.Fill>
+                            </Rectangle>
+                        </DataTemplate>
+                    </ItemsControl.Resources>
+                </ItemsControl>
             </Canvas>
         </ScrollViewer>
         <GridSplitter Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Stretch" ShowsPreview="True" Width="3" Height="Auto"/>

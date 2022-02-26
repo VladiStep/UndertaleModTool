@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -22,6 +23,8 @@ namespace UndertaleModTool
     /// </summary>
     public partial class UndertaleTileLayerEditor : DataUserControl
     {
+        public ObservableCollection<TileRectangle> TileRectangles { get; set; }
+
         public UndertaleTileLayerEditor()
         {
             InitializeComponent();
@@ -29,23 +32,27 @@ namespace UndertaleModTool
 
         private void TileLayerEditor_Loaded(object sender, RoutedEventArgs e)
         {
-            TileLayerEditor_DataContextChanged(null, new());
+            LayerScroll.ScrollChanged -= LayerScroll_ScrollChanged;
+
+            LayerScroll.ScrollToVerticalOffset(0);
+            LayerScroll.ScrollToHorizontalOffset(0);
+
+            _ = Task.Run(() =>
+            {
+                Thread.Sleep(100);
+                Dispatcher.Invoke(() => LayerScroll.ScrollChanged += LayerScroll_ScrollChanged);
+            });
         }
         private void TileLayerEditor_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
+            TileRectangles = (ObservableCollection<TileRectangle>)new TileRectanglesConverter().Convert(new object[] { DataContext }, null, "Observable", null);
+
             if (IsLoaded)
-            {
-                LayerScroll.ScrollChanged -= LayerScroll_ScrollChanged;
-
-                LayerScroll.ScrollToVerticalOffset(0);
-                LayerScroll.ScrollToHorizontalOffset(0);
-
-                _ = Task.Run(() =>
-                {
-                    Thread.Sleep(100);
-                    Dispatcher.Invoke(() => LayerScroll.ScrollChanged += LayerScroll_ScrollChanged);
-                });
-            }
+                TileLayerEditor_Loaded(null, new());
+        }
+        private void TileLayerEditor_Unloaded(object sender, RoutedEventArgs e)
+        {
+            TileRectangles.Clear();
         }
 
         private void LayerScroll_ScrollChanged(object sender, ScrollChangedEventArgs e)
@@ -88,6 +95,11 @@ namespace UndertaleModTool
                 matrix.ScaleAtPrepend(scale, scale, mousePos.X, mousePos.Y);
             }
             element.LayoutTransform = new MatrixTransform(matrix);
+        }
+
+        private void Canvas_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+
         }
     }
 
