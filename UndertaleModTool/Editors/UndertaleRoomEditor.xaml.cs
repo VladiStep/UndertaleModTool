@@ -449,18 +449,18 @@ namespace UndertaleModTool
             }
         }
 
-        bool placingTiles = false;
-        List<Point> placedTiles = new();
+        private bool placingObjects = false;
+        private List<Point> placedObjects = new();
 
         private void PaintObjects(Point gridMouse, UndertaleObject other, UndertaleRoom room)
         {
             if ((Mouse.LeftButton != MouseButtonState.Pressed) || !(Keyboard.Modifiers.HasFlag(ModifierKeys.Alt)))
             {
-                placingTiles = false;
+                placingObjects = false;
                 return;
             }
 
-            if (placedTiles.Contains(gridMouse))
+            if (placedObjects.Contains(gridMouse))
                 return;
 
             Layer layer = null;
@@ -477,8 +477,8 @@ namespace UndertaleModTool
                 return;
             }
 
-            placedTiles.Add(gridMouse);
-            placingTiles = true;
+            placedObjects.Add(gridMouse);
+            placingObjects = true;
 
             if (other is Tile)
             {
@@ -574,20 +574,20 @@ namespace UndertaleModTool
 
             var mousePos = e.GetPosition(roomCanvas);
 
-            placedTiles.Clear();
+            placedObjects.Clear();
 
             PaintObjects(GetGridMouseCoordinates(mousePos, room), other, room);
         }
 
         private void RectangleBackground_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            placingTiles = false;
-            placedTiles.Clear();
+            placingObjects = false;
+            placedObjects.Clear();
         }
 
         private void RectangleBackground_MouseMove(object sender, MouseEventArgs e)
         {
-            if (placingTiles)
+            if (placingObjects)
             {
                 UndertaleRoom room = this.DataContext as UndertaleRoom;
                 var other = selectedObject as UndertaleObject;
@@ -647,7 +647,7 @@ namespace UndertaleModTool
             }
         }
 
-        double scaleOriginX, scaleOriginY;
+        private double scaleOriginX, scaleOriginY;
         private void RectangleTile_MouseDown(object sender, MouseButtonEventArgs e)
         {
             var element = sender as Canvas;
@@ -707,7 +707,7 @@ namespace UndertaleModTool
         {
             e.Handled = true;
             var element = sender as ItemsControl;
-            var mousePos = e.GetPosition(RoomGraphics);
+            var mousePos = e.GetPosition(element);
             var transform = element.LayoutTransform as MatrixTransform;
             var matrix = transform.Matrix;
             var scale = e.Delta >= 0 ? 1.1 : (1.0 / 1.1); // choose appropriate scaling factor
@@ -1079,6 +1079,8 @@ namespace UndertaleModTool
                 mainWindow.ChangeSelection((sel as Tile).ObjectDefinition);
             if (sel is SpriteInstance)
                 mainWindow.ChangeSelection((sel as SpriteInstance).Sprite);
+            if (sel is Layer layer && layer.LayerType == LayerType.Tiles)
+                mainWindow.ChangeSelection(layer.TilesData);
         }
 
         private UndertaleObject copied;
@@ -1462,6 +1464,11 @@ namespace UndertaleModTool
                     MainWindow.ShowMessage("Imported successfully.");
                 }
             }
+        }
+
+        private void EditTileLayerButton_Click(object sender, RoutedEventArgs e)
+        {
+            mainWindow.ChangeSelection((RoomObjectsTree.SelectedItem as Layer).TilesData);
         }
 
         private void MenuItem_NewObjectInstance_Click(object sender, RoutedEventArgs e)

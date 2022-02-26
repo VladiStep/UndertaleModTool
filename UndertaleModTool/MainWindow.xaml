@@ -457,6 +457,10 @@
                                 <local:UndertaleRoomEditor/>
                             </DataTemplate>
 
+                            <DataTemplate DataType="{x:Type undertale:UndertaleRoom+Layer+LayerTilesData}">
+                                <local:UndertaleTileLayerEditor/>
+                            </DataTemplate>
+
                             <DataTemplate DataType="{x:Type undertale:UndertaleExtension}">
                                 <local:UndertaleExtensionEditor/>
                             </DataTemplate>
