@@ -125,6 +125,14 @@ namespace UndertaleModTool
         {
             RoomRootItem.IsSelected = true;
         }
+        private void RoomEditor_Unloaded(object sender, RoutedEventArgs e)
+        {
+            UndertaleCachedImageLoader.Reset();
+            CachedTileDataLoader.Reset();
+            roomCanvas?.ObjectDict.Clear();
+            roomObjDict.Clear();
+            sprInstDict.Clear();
+        }
 
         private void UndertaleRoomEditor_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
