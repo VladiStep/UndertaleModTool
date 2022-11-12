@@ -1,4 +1,5 @@
 using Microsoft.Win32;
+using Ookii.Dialogs.Wpf;
 using System;
 using System.Buffers;
 using System.Collections;
@@ -30,6 +31,8 @@ using System.Windows.Threading;
 using UndertaleModLib;
 using UndertaleModLib.Models;
 using static UndertaleModLib.Models.UndertaleRoom;
+
+using IOPath = System.IO.Path;
 
 namespace UndertaleModTool
 {
@@ -73,6 +76,14 @@ namespace UndertaleModTool
         public UndertaleRoomEditor()
         {
             InitializeComponent();
+
+            // Enable "Export all layers as PNG" button if it's GMS 2
+            if (mainWindow.Data.IsGameMaker2()
+                && ExportLayersButton.Visibility != Visibility.Visible)
+            {
+                ExportButtonsGrid.ColumnDefinitions.Add(new ColumnDefinition());
+                ExportLayersButton.Visibility = Visibility.Visible;
+            }
 
             Loaded += UndertaleRoomEditor_Loaded;
             Unloaded += UndertaleRoomEditor_Unloaded;
@@ -125,6 +136,91 @@ namespace UndertaleModTool
                     mainWindow.ShowError("Failed to export file: " + ex.Message, "Failed to export file");
                 }
             }
+        }
+        private void ExportLayersAsPNG_Click(object sender, RoutedEventArgs e)
+        {
+            UndertaleRoom room = DataContext as UndertaleRoom;
+            if (room.Layers.Count == 0)
+                return;
+
+            #pragma warning disable CA1416
+            VistaFolderBrowserDialog dlg = new()
+            {
+                Description = "Select a path for the layers folder",
+                UseDescriptionForTitle = true
+            };
+            if (dlg.ShowDialog() != true)
+                return;
+
+            string selectedPath = dlg.SelectedPath + IOPath.DirectorySeparatorChar;
+            #pragma warning restore CA1416
+
+            static string replaceInvalidChars(string str) => string.Join("_", str.Split(IOPath.GetInvalidFileNameChars()));
+
+            string roomName = replaceInvalidChars(room.Name.Content);
+            string roomFolder = selectedPath + roomName;
+            try
+            {
+                if (Directory.Exists(roomFolder))
+                {
+                    if (mainWindow.ShowQuestion($"\"{roomName}\" folder already exists. Continue?") == MessageBoxResult.No)
+                        return;
+                }
+                else
+                    Directory.CreateDirectory(roomFolder);
+            }
+            catch (Exception ex)
+            {
+                mainWindow.ShowError($"Failed to create an room layers folder: {ex.Message}");
+            }
+
+            Brush prevBG = roomCanvas.Background;
+            Brush prevOpacMask = roomCanvas.OpacityMask;
+            roomCanvas.Background = Brushes.Transparent;
+            roomCanvas.OpacityMask = null;
+
+            // Save layers visibility
+            bool[] layerStates = room.Layers.Select(l => l.IsVisible).ToArray();
+
+            foreach (Layer l in room.Layers)
+                l.IsVisible = false;
+
+            foreach (Layer l in room.Layers)
+            {
+                // Skip background layers without a sprite
+                if (l.LayerType == LayerType.Background && l.BackgroundData.Sprite is null)
+                    continue;
+
+                l.IsVisible = true;
+
+                string layerName = replaceInvalidChars(l.LayerName.Content);
+                try
+                {
+                    using FileStream file = File.OpenWrite(IOPath.Combine(roomFolder, $"{l.LayerDepth}_{layerName}.png"));
+                    Dispatcher.Invoke(DispatcherPriority.ContextIdle, (Action)(() =>
+                    {
+                        SaveImagePNG(file);
+                    }));
+                }
+                catch (Exception ex)
+                {
+                    roomCanvas.Background = prevBG;
+                    roomCanvas.OpacityMask = prevOpacMask;
+
+                    mainWindow.ShowError($"Failed to export layer \"{l.LayerName.Content}\" of room \"{room.Name.Content}\" - {ex.Message}");
+                }
+
+                l.IsVisible = false;
+            }
+
+            // Restore layers visibility
+            for (int i = 0; i < layerStates.Length; i++)
+                room.Layers[i].IsVisible = layerStates[i];
+
+            roomCanvas.Background = prevBG;
+            roomCanvas.OpacityMask = prevOpacMask;
+
+            mainWindow.ShowMessage("The layers are saved successfully.");
         }
 
         private void UndertaleRoomEditor_Loaded(object sender, RoutedEventArgs e)
