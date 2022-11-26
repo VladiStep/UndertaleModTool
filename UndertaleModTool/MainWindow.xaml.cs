@@ -173,25 +173,20 @@ namespace UndertaleModTool
 
                 title = "String - " + stringFirstLine;
             }
-            else if (obj is UndertaleChunkVARI)
-            {
-                title = "Variables Overview";
-            }
-            else if (obj is GeneralInfoEditor)
-            {
-                title = "General Info";
-            }
-            else if (obj is GlobalInitEditor)
-            {
-                title = "Global Init";
-            }
-            else if (obj is GameEndEditor)
-            {
-                title = "Game End";
-            }
             else
             {
-                Debug.WriteLine($"Could not handle type {obj.GetType()}");
+                title = obj switch
+                {
+                    UndertaleChunkVARI => "Variables Overview",
+                    GeneralInfoEditor => "General Info",
+                    GlobalInitEditor => "Global Init",
+                    GameEndEditor => "Game End",
+                    UndertaleSequence.Track => "Sprite frames sequence",
+                    _ => null
+                };
+
+                if (title is null)
+                    Debug.WriteLine($"Could not handle type {obj.GetType()}");
             }
 
             if (title is not null)

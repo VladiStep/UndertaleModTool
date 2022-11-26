@@ -589,6 +589,9 @@
                                 <DataTemplate DataType="{x:Type undertale:UndertaleSprite}">
                                     <local:UndertaleSpriteEditor/>
                                 </DataTemplate>
+                                <DataTemplate DataType="{x:Type undertale:UndertaleSequence+Track}">
+                                    <local:UndertaleSpriteSequenceEditor/>
+                                </DataTemplate>
 
                                 <DataTemplate DataType="{x:Type undertale:UndertaleScript}">
                                     <local:UndertaleScriptEditor/>

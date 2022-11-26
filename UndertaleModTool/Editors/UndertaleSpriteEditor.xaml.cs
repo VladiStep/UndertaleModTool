@@ -153,7 +153,9 @@ namespace UndertaleModTool
         }
         private void EditSequence_Click(object sender, RoutedEventArgs e)
         {
-
+            UndertaleSequence.Track track = (DataContext as UndertaleSprite).V2Sequence.Tracks.FirstOrDefault();
+            if (track is not null)
+                mainWindow.Selected = track;
         }
 
         private void MaskList_AddingNewItem(object sender, AddingNewItemEventArgs e)
