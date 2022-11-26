@@ -206,15 +206,12 @@ public class UndertaleSprite : UndertaleNamedResource, PrePaddedObject, INotifyP
     public bool IsSpineSprite { get => SpineJSON != null && SpineAtlas != null && SpineTextures != null; }
     public bool IsYYSWFSprite { get => YYSWF != null; }
 
-    private int _SWFVersion;
-    private UndertaleYYSWF _YYSWF;
+    public int SWFVersion { get; set; }
+    public UndertaleYYSWF YYSWF { get; set; }
 
-    public int SWFVersion { get => _SWFVersion; set { _SWFVersion = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SWFVersion))); } }
-    public UndertaleYYSWF YYSWF { get => _YYSWF; set { _YYSWF = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(YYSWF))); } }
+    public UndertaleSequence V2Sequence { get; set; }
 
-    public UndertaleSequence V2Sequence;
-
-    public NineSlice V3NineSlice;
+    public NineSlice V3NineSlice { get; set; }
 
     /// <inheritdoc />
     public event PropertyChangedEventHandler PropertyChanged;
@@ -243,7 +240,7 @@ public class UndertaleSprite : UndertaleNamedResource, PrePaddedObject, INotifyP
         Textures = new();
         CollisionMasks.Clear();
         SpineTextures = null;
-        _YYSWF = null;
+        YYSWF = null;
         V2Sequence = null;
         V3NineSlice = null;
     }

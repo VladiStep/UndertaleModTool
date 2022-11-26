@@ -27,10 +27,19 @@ namespace UndertaleModTool
     public partial class UndertaleSpriteEditor : DataUserControl
     {
         private static readonly MainWindow mainWindow = Application.Current.MainWindow as MainWindow;
+        private bool isCurrentSequenceValid = false;
 
         public UndertaleSpriteEditor()
         {
             InitializeComponent();
+        }
+
+        private void DataUserControl_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (e.NewValue is UndertaleSprite spr)
+            {
+
+            }
         }
 
         private void ExportAllSpine(SaveFileDialog dlg, UndertaleSprite sprite)
@@ -141,6 +150,10 @@ namespace UndertaleModTool
             }
 
             worker.Cleanup();
+        }
+        private void EditSequence_Click(object sender, RoutedEventArgs e)
+        {
+
         }
 
         private void MaskList_AddingNewItem(object sender, AddingNewItemEventArgs e)
