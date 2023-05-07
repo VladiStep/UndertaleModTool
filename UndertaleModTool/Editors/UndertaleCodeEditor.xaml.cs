@@ -1187,11 +1187,11 @@ namespace UndertaleModTool
             private readonly TextEditor textEditorInst;
             private readonly UndertaleCodeEditor codeEditorInst;
 
-            private static readonly SolidColorBrush FunctionBrush = new(Color.FromRgb(0xFF, 0xB8, 0x71));
-            private static readonly SolidColorBrush GlobalBrush = new(Color.FromRgb(0xF9, 0x7B, 0xF9));
-            private static readonly SolidColorBrush ConstantBrush = new(Color.FromRgb(0xFF, 0x80, 0x80));
-            private static readonly SolidColorBrush InstanceBrush = new(Color.FromRgb(0x58, 0xE3, 0x5A));
-            private static readonly SolidColorBrush LocalBrush = new(Color.FromRgb(0xFF, 0xF8, 0x99));
+            private static readonly SolidColorBrush FunctionBrush = new(Color.FromRgb(255, 184, 113));
+            private static readonly SolidColorBrush GlobalBrush = new(Color.FromRgb(249, 123, 249));
+            private static readonly SolidColorBrush ConstantBrush = new(Color.FromRgb(255, 128, 128));
+            private static readonly SolidColorBrush InstanceBrush = new(Color.FromRgb(88, 227, 90));
+            private static readonly SolidColorBrush LocalBrush = new(Color.FromRgb(255, 248, 153));
 
             private static ContextMenuDark contextMenu;
 
