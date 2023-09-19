@@ -237,7 +237,7 @@ namespace UndertaleModLib
         public IList GetList() => List;
         public void GenerateIndexDict()
         {
-            if (IndexDict is not null)
+            if (IndexDict is not null || List is null)
                 return;
 
             IndexDict = new();
@@ -246,6 +246,9 @@ namespace UndertaleModLib
         }
         public void ClearIndexDict()
         {
+            if (IndexDict is null)
+                return;
+
             IndexDict.Clear();
             IndexDict = null;
         }
