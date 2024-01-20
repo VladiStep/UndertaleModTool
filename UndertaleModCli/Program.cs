@@ -788,6 +788,19 @@ public partial class Program : IScriptInterface
     {
         try
         {
+            warningHandler ??= (warning) =>
+            {
+                // Make sure that the object pool size warnings allow data loading
+                if (warning.Contains("unserializeCountError.txt")
+                    || warning.Contains("object pool size"))
+                {
+                    Console.WriteLine(warning);
+                    return;
+                }
+
+                throw new IOException(warning);
+            };
+
             using FileStream fs = datafile.OpenRead();
             UndertaleData gmData = UndertaleIO.Read(fs, warningHandler, messageHandler);
             return gmData;

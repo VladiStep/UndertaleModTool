@@ -331,7 +331,7 @@ namespace UndertaleModLib
                                       + countUnserializeExc.StackTrace);
 
                     SubmitWarning("Warning - there was an error while trying to unserialize total object count.\n" +
-                                  "The error log is saved to \"unserializeCountError.txt\"." +
+                                  "The error log is saved to \"unserializeCountError.txt\".\n" +
                                   "Please report that error to UndertaleModTool GitHub.");
                 }
                 catch { }
@@ -344,7 +344,7 @@ namespace UndertaleModLib
             if (poolSize != 0 && poolSize != objectPool.Count)
             {
                 SubmitWarning("Warning - the estimated object pool size differs from the actual size.\n" +
-                              "Please report this on UndertaleModTool GitHub.");
+                              "Please report this to UndertaleModTool GitHub.");
             }
 
             return false;
