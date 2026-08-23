@@ -1334,7 +1334,7 @@ namespace UndertaleModTool.Windows
                 {
                     new PredicateForVersion()
                     {
-                        Version = (1, 0, 0),
+                        Version = (14, uint.MaxValue, uint.MaxValue), // Bytecode version 14
                         Predicate = (objSrc, types, checkOne) =>
                         {
                             if (!types.Contains(typeof(UndertaleSound)))

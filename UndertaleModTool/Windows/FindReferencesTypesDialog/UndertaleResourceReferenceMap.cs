@@ -15,17 +15,17 @@ namespace UndertaleModTool.Windows
         }
 
         public int CompareTo(GameVersion other)
-		{
-			int cmp = Major.CompareTo(other.Major);
-			if (cmp != 0)
+        {
+            int cmp = Major.CompareTo(other.Major);
+            if (cmp != 0)
                 return cmp;
 
-			cmp = Minor.CompareTo(other.Minor);
-			if (cmp != 0)
+            cmp = Minor.CompareTo(other.Minor);
+            if (cmp != 0)
                 return cmp;
 
-			return Release.CompareTo(other.Release);
-		}
+            return Release.CompareTo(other.Release);
+        }
     }
 
     public class TypesForVersion
@@ -188,7 +188,6 @@ namespace UndertaleModTool.Windows
                             (typeof(UndertaleVariable), "Variables"),
                             (typeof(UndertaleFunction), "Functions"),
                             (typeof(UndertaleSound), "Sounds"),
-                            (typeof(UndertaleAudioGroup), "Audio groups"),
                             (typeof(UndertaleSprite), "Sprites"),
                             (typeof(UndertaleExtension), "Extensions"),
                             (typeof(UndertaleExtensionFile), "Extension files"),
@@ -203,6 +202,15 @@ namespace UndertaleModTool.Windows
                             (typeof(UndertaleScript), "Scripts"),
                             (typeof(UndertaleShader), "Shaders"),
                             (typeof(UndertaleTimeline), "Timelines")
+                        }
+                    },
+                    new TypesForVersion
+                    {
+                        // Bytecode version 14
+                        Version = (14, uint.MaxValue, uint.MaxValue),
+                        Types = new[]
+                        {
+                            (typeof(UndertaleAudioGroup), "Audio groups")
                         }
                     },
                     new TypesForVersion
@@ -364,7 +372,8 @@ namespace UndertaleModTool.Windows
                 {
                     new TypesForVersion()
                     {
-                        Version = (1, 0, 0),
+                        // Bytecode version 14
+                        Version = (14, uint.MaxValue, uint.MaxValue),
                         Types = new[]
                         {
                             (typeof(UndertaleSound), "Sounds")
@@ -459,7 +468,7 @@ namespace UndertaleModTool.Windows
             { typeof(UndertaleFunction), ("Functions", (1, 0, 0)) },
             { typeof(UndertaleVariable), ("Variables", (1, 0, 0)) },
             { typeof(UndertaleEmbeddedAudio), ("Embedded audio", (1, 0, 0)) },
-            { typeof(UndertaleAudioGroup), ("Audio groups", (1, 0, 0)) },
+            { typeof(UndertaleAudioGroup), ("Audio groups", (14, uint.MaxValue, uint.MaxValue)) }, // Bytecode version 14
             { typeof(UndertaleParticleSystem), ("Particle systems", (2023, 2, 0)) },
             { typeof(UndertaleParticleSystemEmitter), ("Particle system emitters", (2023, 2, 0)) }
         };
