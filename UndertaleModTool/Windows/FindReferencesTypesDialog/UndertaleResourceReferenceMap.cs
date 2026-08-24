@@ -9,6 +9,16 @@ namespace UndertaleModTool.Windows
 {
     public record GameVersion(uint Major, uint Minor, uint Release) : IComparable<GameVersion>
     {
+        public GameVersion(UndertaleGeneralInfo gameInfo) : this(gameInfo.Major, gameInfo.Minor, gameInfo.Release)
+        {
+            if (gameInfo.Branch == UndertaleGeneralInfo.BranchType.LTS2022_0)
+            {
+                Major = 2022;
+                Minor = 0;
+                Release = 0;
+            } 
+        }
+
         public static implicit operator GameVersion((uint, uint, uint) verTuple)
         {
             return new(verTuple.Item1, verTuple.Item2, verTuple.Item3);
@@ -489,11 +499,7 @@ namespace UndertaleModTool.Windows
             if (!typeMap.TryGetValue(type, out TypesForVersion[] typesForVer))
                 return null;
 
-            GameVersion version;
-            if (data.GeneralInfo.Branch == UndertaleGeneralInfo.BranchType.LTS2022_0)
-                version = (2022, 0, 0);
-            else
-                version = (data.GeneralInfo.Major, data.GeneralInfo.Minor, data.GeneralInfo.Release);
+            GameVersion version = new(data.GeneralInfo);
             byte bytecodeVersion = data.GeneralInfo.BytecodeVersion;
 
             IEnumerable<(Type, string)> outTypes = Enumerable.Empty<(Type, string)>();
