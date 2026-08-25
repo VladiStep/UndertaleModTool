@@ -36,7 +36,7 @@ namespace UndertaleModTool.Windows
 
         private static bool IsTypeSupported(Type assetType)
         {
-            if (typeMap is null || gameVersion is null)
+            if (typeMap is null || gameVersion == default)
                 return false;
 
             // TODO
@@ -57,15 +57,15 @@ namespace UndertaleModTool.Windows
             containsEverything = false;
             gameData = null;
             isYYC = false;
-            gameVersion = null;
+            gameVersion = default;
             bytecodeVer = 0;
         }
     }
 
     public class PredicateForVersion
     {
-        public (uint Major, uint Minor, uint Release) Version { get; set; }
-        public (uint Major, uint Minor, uint Release) BeforeVersion { get; set; } = (uint.MaxValue, uint.MaxValue, uint.MaxValue);
+        public GameVersion Version { get; set; }
+        public GameVersion BeforeVersion { get; set; } = new((uint.MaxValue, uint.MaxValue, uint.MaxValue), byte.MaxValue);
         public bool DisableForLTS2022 { get; set; } = false;
         public Func<object, HashSetTypesOverride, bool, Dictionary<string, object[]>> Predicate { get; set; }
     }
@@ -673,7 +673,7 @@ namespace UndertaleModTool.Windows
                     new PredicateForVersion()
                     {
                         // Bytecode version 15
-                        Version = (15, uint.MaxValue, uint.MaxValue),
+                        Version = new(15),
                         BeforeVersion = (2024, 8, 0),
                         Predicate = (objSrc, types, checkOne) =>
                         {
@@ -693,7 +693,7 @@ namespace UndertaleModTool.Windows
                     new PredicateForVersion()
                     {
                         // Bytecode version 16
-                        Version = (16, uint.MaxValue, uint.MaxValue),
+                        Version = new(16),
                         Predicate = (objSrc, types, checkOne) =>
                         {
                             if (!types.Contains(typeof(UndertaleLanguage)))
@@ -1336,7 +1336,7 @@ namespace UndertaleModTool.Windows
                     new PredicateForVersion()
                     {
                         // Bytecode version 16
-                        Version = (16, uint.MaxValue, uint.MaxValue),
+                        Version = new(16),
                         Predicate = (objSrc, types, checkOne) =>
                         {
                             if (!types.Contains(typeof(UndertaleRoom.GameObject)))
@@ -1412,7 +1412,7 @@ namespace UndertaleModTool.Windows
                 {
                     new PredicateForVersion()
                     {
-                        Version = (14, uint.MaxValue, uint.MaxValue), // Bytecode version 14
+                        Version = new(14), // Bytecode version 14
                         Predicate = (objSrc, types, checkOne) =>
                         {
                             if (!types.Contains(typeof(UndertaleSound)))
@@ -1634,21 +1634,12 @@ namespace UndertaleModTool.Windows
 
             bool onlyEmptyResult = true;
 
-            var ver = (data.GeneralInfo.Major, data.GeneralInfo.Minor, data.GeneralInfo.Release);
+            GameVersion ver = new(data.GeneralInfo);
             Dictionary<string, List<object>> outDict = new();
             foreach (var predicateForVer in predicatesForVer)
             {
-                bool isAtLeast = false;
-                if (predicateForVer.Version.Minor == uint.MaxValue)
-                    isAtLeast = predicateForVer.Version.Major <= data.GeneralInfo.BytecodeVersion;
-                else
-                    isAtLeast = predicateForVer.Version.CompareTo(ver) <= 0;
-
-                bool isAboveMost = false;
-                if (predicateForVer.BeforeVersion.Minor == uint.MaxValue)
-                    isAboveMost = predicateForVer.BeforeVersion.Major <= data.GeneralInfo.BytecodeVersion;
-                else
-                    isAboveMost = predicateForVer.BeforeVersion.CompareTo(ver) <= 0;
+                bool isAtLeast = predicateForVer.Version.CompareTo(ver) <= 0;
+                bool isAboveMost = predicateForVer.BeforeVersion.CompareTo(ver) <= 0;
 
                 bool disableDueToLTS = false;
                 if (data.GeneralInfo.Branch == UndertaleGeneralInfo.BranchType.LTS2022_0)

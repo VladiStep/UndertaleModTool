@@ -7,41 +7,55 @@ using UndertaleModLib.Models;
 
 namespace UndertaleModTool.Windows
 {
-    public record GameVersion(uint Major, uint Minor, uint Release) : IComparable<GameVersion>
+    public readonly record struct GameVersion((uint Major, uint Minor, uint Release)? GameMakerVersion = null,
+                                              byte? BytecodeVersion = null)
+        : IComparable<GameVersion>
     {
-        public GameVersion(UndertaleGeneralInfo gameInfo) : this(gameInfo.Major, gameInfo.Minor, gameInfo.Release)
+        public GameVersion() : this(null, null)
+        {
+            throw new InvalidOperationException("At least one version (GameMaker or bytecode) must be specified.");
+        }
+        public GameVersion(byte bytecodeVersion) : this(null, bytecodeVersion)
+        {
+        }
+        public GameVersion(UndertaleGeneralInfo gameInfo)
+            : this((gameInfo.Major, gameInfo.Minor, gameInfo.Release), gameInfo.BytecodeVersion)
         {
             if (gameInfo.Branch == UndertaleGeneralInfo.BranchType.LTS2022_0)
-            {
-                Major = 2022;
-                Minor = 0;
-                Release = 0;
-            } 
+                GameMakerVersion = (2022, 0, 0);
         }
+
+        public bool HasGMVersion => GameMakerVersion.HasValue;
+        public bool HasBytecodeVersion => BytecodeVersion.HasValue;
 
         public static implicit operator GameVersion((uint, uint, uint) verTuple)
         {
-            return new(verTuple.Item1, verTuple.Item2, verTuple.Item3);
+            return new(verTuple);
         }
 
         public int CompareTo(GameVersion other)
         {
-            int cmp = Major.CompareTo(other.Major);
-            if (cmp != 0)
-                return cmp;
+            bool compareGMVer = HasGMVersion && other.HasGMVersion;
+            bool compareBytecodeVer = HasBytecodeVersion && other.HasBytecodeVersion;
 
-            cmp = Minor.CompareTo(other.Minor);
-            if (cmp != 0)
-                return cmp;
+            if (!compareGMVer && !compareBytecodeVer)
+                throw new InvalidOperationException("No common version to compare (GameMaker or bytecode)");
 
-            return Release.CompareTo(other.Release);
+            if (compareGMVer)
+            {
+                int gmCompare = GameMakerVersion.Value.CompareTo(other.GameMakerVersion.Value);
+                if (gmCompare != 0 || !compareBytecodeVer)
+                    return gmCompare;
+            }
+
+            return BytecodeVersion.Value.CompareTo(other.BytecodeVersion.Value);
         }
     }
 
     public class TypesForVersion
     {
         public GameVersion Version { get; set; }
-        public GameVersion BeforeVersion { get; set; } = new(uint.MaxValue, uint.MaxValue, uint.MaxValue);
+        public GameVersion BeforeVersion { get; set; } = new((uint.MaxValue, uint.MaxValue, uint.MaxValue), byte.MaxValue);
         public (Type, string)[] Types { get; set; }
     }
 
@@ -217,7 +231,7 @@ namespace UndertaleModTool.Windows
                     new TypesForVersion
                     {
                         // Bytecode version 14
-                        Version = (14, uint.MaxValue, uint.MaxValue),
+                        Version = new(14),
                         Types = new[]
                         {
                             (typeof(UndertaleAudioGroup), "Audio groups")
@@ -226,7 +240,7 @@ namespace UndertaleModTool.Windows
                     new TypesForVersion
                     {
                         // Bytecode version 15
-                        Version = (15, uint.MaxValue, uint.MaxValue),
+                        Version = new(15),
                         BeforeVersion = (2024, 8, 0),
                         Types = new[]
                         {
@@ -236,7 +250,7 @@ namespace UndertaleModTool.Windows
                     new TypesForVersion
                     {
                         // Bytecode version 16
-                        Version = (16, uint.MaxValue, uint.MaxValue),
+                        Version = new(16),
                         Types = new[]
                         {
                             (typeof(UndertaleLanguage), "Languages"),
@@ -354,7 +368,7 @@ namespace UndertaleModTool.Windows
                     new TypesForVersion()
                     {
                         // Bytecode version 16
-                        Version = (16, uint.MaxValue, uint.MaxValue),
+                        Version = new(16),
                         Types = new[]
                         {
                             (typeof(UndertaleRoom.GameObject), "Room object instances (creation or pre create code)")
@@ -383,7 +397,7 @@ namespace UndertaleModTool.Windows
                     new TypesForVersion()
                     {
                         // Bytecode version 14
-                        Version = (14, uint.MaxValue, uint.MaxValue),
+                        Version = new(14),
                         Types = new[]
                         {
                             (typeof(UndertaleSound), "Sounds")
@@ -478,7 +492,7 @@ namespace UndertaleModTool.Windows
             { typeof(UndertaleFunction), ("Functions", (1, 0, 0)) },
             { typeof(UndertaleVariable), ("Variables", (1, 0, 0)) },
             { typeof(UndertaleEmbeddedAudio), ("Embedded audio", (1, 0, 0)) },
-            { typeof(UndertaleAudioGroup), ("Audio groups", (14, uint.MaxValue, uint.MaxValue)) }, // Bytecode version 14
+            { typeof(UndertaleAudioGroup), ("Audio groups", new(14)) }, // Bytecode version 14
             { typeof(UndertaleParticleSystem), ("Particle systems", (2023, 2, 0)) },
             { typeof(UndertaleParticleSystemEmitter), ("Particle system emitters", (2023, 2, 0)) }
         };
@@ -500,22 +514,12 @@ namespace UndertaleModTool.Windows
                 return null;
 
             GameVersion version = new(data.GeneralInfo);
-            byte bytecodeVersion = data.GeneralInfo.BytecodeVersion;
 
             IEnumerable<(Type, string)> outTypes = Enumerable.Empty<(Type, string)>();
             foreach (var typeForVer in typesForVer)
             {
-                bool isAtLeast = false;
-                if (typeForVer.Version.Minor == uint.MaxValue)
-                    isAtLeast = typeForVer.Version.Major <= bytecodeVersion;
-                else
-                    isAtLeast = typeForVer.Version.CompareTo(version) <= 0;
-
-                bool isAboveMost = false;
-                if (typeForVer.BeforeVersion.Minor == uint.MaxValue)
-                    isAboveMost = typeForVer.BeforeVersion.Major <= bytecodeVersion;
-                else
-                    isAboveMost = typeForVer.BeforeVersion.CompareTo(version) <= 0;
+                bool isAtLeast = typeForVer.Version.CompareTo(version) <= 0;
+                bool isAboveMost = typeForVer.BeforeVersion.CompareTo(version) <= 0;
 
                 if (isAtLeast && !isAboveMost)
                     outTypes = typeForVer.Types.UnionBy(outTypes, x => x.Item1);
