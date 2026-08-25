@@ -820,17 +820,24 @@ namespace UndertaleModTool.Windows
                                     outDict["Sequences"] = checkOne ? sequences.ToEmptyArray() : sequences.ToArray();
                             }
 
-                            // TODO: make these "IEnumerable<object[]>"
+                            // TODO: make these "IEnumerable<object[]>"?
                             List<object[]> sequenceTracks = new();
                             List<object[]> seqStringKeyframes = new();
                             void ProcessTrack(UndertaleSequence seq, Track track, List<object> trackChain)
                             {
+                                if (checkOne && (sequenceTracks.Count > 0 || seqStringKeyframes.Count > 0))
+                                    return; // Stop recursion, we already found one reference
+
                                 trackChain = new(trackChain);
                                 trackChain.Insert(0, track);
                                 if (types.Contains(typeof(Track)))
                                 {
                                     if (track.Name == obj || track.ModelName == obj)
+                                    {
                                         sequenceTracks.Add(trackChain.Append(seq).ToArray());
+                                        if (checkOne)
+                                            return; // No need for getting all of the references
+                                    }
                                 }
 
                                 if (types.Contains(typeof(StringKeyframes)))
@@ -842,14 +849,22 @@ namespace UndertaleModTool.Windows
                                             foreach (var strPair in keyframe.Channels)
                                             {
                                                 if (strPair.Value.Value == obj)
+                                                {
                                                     seqStringKeyframes.Add(new object[] { strPair.Channel }.Concat(trackChain).Append(seq).ToArray());
+                                                    if (checkOne)
+                                                        return; // No need for getting all of the references
+                                                }
                                             }
                                         }
                                     }
                                 }
 
                                 foreach (var subTrack in track.Tracks)
+                                {
                                     ProcessTrack(seq, subTrack, trackChain);
+                                    if (checkOne && (sequenceTracks.Count > 0 || seqStringKeyframes.Count > 0))
+                                        return;
+                                }
                             };
                             foreach (var seq in data.Sequences.SkipNullItems())
                             {
@@ -857,6 +872,8 @@ namespace UndertaleModTool.Windows
                                 {
                                     List<object> trackChain = new();
                                     ProcessTrack(seq, track, trackChain);
+                                    if (checkOne && (sequenceTracks.Count > 0 || seqStringKeyframes.Count > 0))
+                                        break;
                                 }
                             }
                             if (sequenceTracks.Count > 0)
@@ -968,10 +985,13 @@ namespace UndertaleModTool.Windows
                             if (objSrc is not UndertaleString obj)
                                 return null;
 
-                            // TODO: make this "IEnumerable<object[]>"
+                            // TODO: make this "IEnumerable<object[]>"?
                             List<object[]> textKeyframesList = new();
                             void ProcessTrack(UndertaleSequence seq, Track track, List<object> trackChain)
                             {
+                                if (checkOne && textKeyframesList.Count > 0)
+                                    return; // Stop recursion, we already found one reference
+
                                 trackChain = new(trackChain);
                                 trackChain.Insert(0, track);
 
@@ -980,13 +1000,23 @@ namespace UndertaleModTool.Windows
                                     foreach (var keyframe in textKeyframes.List)
                                     {
                                         foreach (var textPair in keyframe.Channels)
+                                        {
                                             if (textPair.Value.Text == obj)
+                                            {
                                                 textKeyframesList.Add(new object[] { textPair.Channel }.Concat(trackChain).Append(seq).ToArray());
+                                                if (checkOne)
+                                                    return; // No need for getting all of the references
+                                            }
+                                        }
                                     }
                                 }
 
                                 foreach (var subTrack in track.Tracks)
+                                {
                                     ProcessTrack(seq, subTrack, trackChain);
+                                    if (checkOne && textKeyframesList.Count > 0)
+                                        return;
+                                }
                             };
 
                             foreach (var seq in data.Sequences.SkipNullItems())
@@ -995,6 +1025,8 @@ namespace UndertaleModTool.Windows
                                 {
                                     List<object> trackChain = new();
                                     ProcessTrack(seq, track, trackChain);
+                                    if (checkOne && textKeyframesList.Count > 0)
+                                        break;
                                 }
                             }
                             if (textKeyframesList.Count > 0)
@@ -1130,10 +1162,13 @@ namespace UndertaleModTool.Windows
                             if (objSrc is not UndertaleGameObject obj)
                                 return null;
 
-                            // TODO: make this "IEnumerable<object[]>"
+                            // TODO: make this "IEnumerable<object[]>"?
                             List<object[]> instKeyframesList = new();
                             void ProcessTrack(UndertaleSequence seq, Track track, List<object> trackChain)
                             {
+                                if (checkOne && instKeyframesList.Count > 0)
+                                    return; // Stop recursion, we already found one reference
+
                                 trackChain = new(trackChain);
                                 trackChain.Insert(0, track);
 
@@ -1143,12 +1178,20 @@ namespace UndertaleModTool.Windows
                                     {
                                         foreach (var instPair in keyframe.Channels)
                                             if (instPair.Value.Resource.Resource == obj)
+                                            {
                                                 instKeyframesList.Add(new object[] { instPair.Channel }.Concat(trackChain).Append(seq).ToArray());
+                                                if (checkOne)
+                                                    return; // No need for getting all of the references
+                                            }
                                     }
                                 }
 
                                 foreach (var subTrack in track.Tracks)
+                                {
                                     ProcessTrack(seq, subTrack, trackChain);
+                                    if (checkOne && instKeyframesList.Count > 0)
+                                        return;
+                                }
                             };
 
                             foreach (var seq in data.Sequences.SkipNullItems())
@@ -1157,6 +1200,8 @@ namespace UndertaleModTool.Windows
                                 {
                                     List<object> trackChain = new();
                                     ProcessTrack(seq, track, trackChain);
+                                    if (checkOne && instKeyframesList.Count > 0)
+                                        break;
                                 }
                             }
                             if (instKeyframesList.Count > 0)
