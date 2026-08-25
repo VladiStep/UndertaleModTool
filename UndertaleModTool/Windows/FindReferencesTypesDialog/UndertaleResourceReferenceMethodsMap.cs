@@ -64,10 +64,12 @@ namespace UndertaleModTool.Windows
 
     public class PredicateForVersion
     {
+        public delegate Dictionary<string, object[]> PredicateDelegate(object objSrc, HashSetTypesOverride types, bool checkOne);
+
         public GameVersion Version { get; set; }
         public GameVersion BeforeVersion { get; set; } = new((uint.MaxValue, uint.MaxValue, uint.MaxValue), byte.MaxValue);
         public bool DisableForLTS2022 { get; set; } = false;
-        public Func<object, HashSetTypesOverride, bool, Dictionary<string, object[]>> Predicate { get; set; }
+        public PredicateDelegate Predicate { get; set; }
     }
 
     public static class UndertaleResourceReferenceMethodsMap
