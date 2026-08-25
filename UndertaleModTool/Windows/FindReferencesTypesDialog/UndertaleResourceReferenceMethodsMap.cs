@@ -14,19 +14,52 @@ namespace UndertaleModTool.Windows
 {
     public class HashSetTypesOverride : HashSet<Type>
     {
-        private readonly bool containsEverything, isYYC;
-        public HashSetTypesOverride(bool containsEverything = false, bool isYYC = false)
+        private static bool containsEverything, isYYC;
+        private static Dictionary<Type, PredicateForVersion[]> typeMap;
+        private static UndertaleData gameData;
+        private static GameVersion gameVersion;
+        private static byte bytecodeVer;
+
+        public static void MakeContainEverything(UndertaleData gameData, Dictionary<Type, PredicateForVersion[]> typeMap)
         {
-            this.containsEverything = containsEverything;
-            this.isYYC = isYYC;
+            containsEverything = true;
+            HashSetTypesOverride.typeMap = typeMap;
+            HashSetTypesOverride.gameData = gameData;
+
+            if (gameData is null)
+                return;
+
+            isYYC = gameData.Code is null;
+            gameVersion = new(gameData.GeneralInfo);
+            bytecodeVer = gameData.GeneralInfo.BytecodeVersion;
         }
+
+        private static bool IsTypeSupported(Type assetType)
+        {
+            if (typeMap is null || gameVersion is null)
+                return false;
+
+            // TODO
+            throw new NotImplementedException();
+        }
+
         public new bool Contains(Type item)
         {
             if (!containsEverything)
                 return base.Contains(item);
 
-            return !isYYC || !UndertaleResourceReferenceMap.CodeTypes.Contains(item);
-        } 
+            return !isYYC || !UndertaleResourceReferenceMap.CodeTypes.Contains(item)
+                   || IsTypeSupported(item);
+        }
+
+        public static void Restore()
+        {
+            containsEverything = false;
+            gameData = null;
+            isYYC = false;
+            gameVersion = null;
+            bytecodeVer = 0;
+        }
     }
 
     public class PredicateForVersion
@@ -1707,6 +1740,8 @@ namespace UndertaleModTool.Windows
                 {
                     ignoreArgumentsVar = true;
 
+                    HashSetTypesOverride.MakeContainEverything(data, typeMap);
+
                     var assetsPart = Partitioner.Create(0, assets.Count);
 
                     await Task.Run(() =>
@@ -1718,8 +1753,7 @@ namespace UndertaleModTool.Windows
                             for (int i = range.Item1; i < range.Item2; i++)
                             {
                                 var asset = assets[i];
-                                var assetReferences = GetReferencesOfObject(asset.Item1, data,
-                                                                            new HashSetTypesOverride(true, data.Code is null), true);
+                                var assetReferences = GetReferencesOfObject(asset.Item1, data, new HashSetTypesOverride(), true);
                                 if (assetReferences is null)
                                 {
                                     if (resultDict.TryGetValue(asset.Item2, out var list))
@@ -1783,6 +1817,8 @@ namespace UndertaleModTool.Windows
                 stringReferences = null;
                 funcReferences = null;
                 variReferences = null;
+
+                HashSetTypesOverride.Restore();
             }
 
             if (outDict.Count == 0)
