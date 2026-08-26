@@ -21,6 +21,10 @@ namespace UndertaleModTool.Windows
         public GameVersion(UndertaleGeneralInfo gameInfo)
             : this((gameInfo.Major, gameInfo.Minor, gameInfo.Release), gameInfo.BytecodeVersion)
         {
+            // The asset types that were introduced in GM 2023+ are not available in LTS 2022.
+            // It seems obvious, but the general info says that it's a GM 2023+ for a LTS 2022 game.
+            // For example, particle systems - they are missing in LTS 2022, even if the general info says it's GM 2023.6.
+            // So we treat that version as GM 2022.0, as it should be
             if (gameInfo.Branch == UndertaleGeneralInfo.BranchType.LTS2022_0)
                 GameMakerVersion = (2022, 0, 0);
         }
@@ -111,6 +115,7 @@ namespace UndertaleModTool.Windows
                     new TypesForVersion
                     {
                         Version = (1, 0, 0),
+                        BeforeVersion = (2, 0, 0),
                         Types = new[]
                         {
                             (typeof(UndertaleRoom.Background), "Room backgrounds"),
@@ -122,8 +127,6 @@ namespace UndertaleModTool.Windows
                         Version = (2, 0, 0),
                         Types = new[]
                         {
-                            (typeof(UndertaleRoom.Background), null),
-                            (typeof(UndertaleRoom.Tile), null),
                             (typeof(UndertaleRoom.Layer), "Room tile layers")
                         }
                     },
@@ -518,8 +521,8 @@ namespace UndertaleModTool.Windows
             IEnumerable<(Type, string)> outTypes = Enumerable.Empty<(Type, string)>();
             foreach (var typeForVer in typesForVer)
             {
-                bool isAtLeast = typeForVer.Version.CompareTo(version) <= 0;
-                bool isAboveMost = typeForVer.BeforeVersion.CompareTo(version) <= 0;
+                bool isAtLeast = version.CompareTo(typeForVer.Version) >= 0;
+                bool isAboveMost = version.CompareTo(typeForVer.BeforeVersion) >= 0;
 
                 if (isAtLeast && !isAboveMost)
                     outTypes = typeForVer.Types.UnionBy(outTypes, x => x.Item1);
@@ -533,13 +536,20 @@ namespace UndertaleModTool.Windows
                            .ToArray();
         }
 
-        public static Dictionary<Type, string> GetReferenceableTypes(GameVersion version)
+        public static Dictionary<Type, string> GetReferenceableTypes(GameVersion version, bool isYYC)
         {
             if (version == currVersion && currVersion != default)
                 return referenceableTypes;
 
-            referenceableTypes = referenceableTypesOrig.Where(x => x.Value.Item2.CompareTo(version) <= 0)
-                                                       .ToDictionary(x => x.Key, x => x.Value.Item1);
+            // Filter out code-related types, because YYC game = no code in "data.win"
+            IEnumerable<KeyValuePair<Type, (string, GameVersion)>> typesOrigSrc;
+            if (isYYC)
+                typesOrigSrc = referenceableTypesOrig.ExceptBy(CodeTypes, x => x.Key);
+            else
+                typesOrigSrc = referenceableTypesOrig;
+
+            referenceableTypes = typesOrigSrc.Where(x => x.Value.Item2.CompareTo(version) <= 0)
+                                             .ToDictionary(x => x.Key, x => x.Value.Item1);
             currVersion = version;
 
             if (referenceableTypes.Count == 0)
@@ -557,6 +567,40 @@ namespace UndertaleModTool.Windows
                 return false;
 
             return typeMap.ContainsKey(type);
+        }
+
+        public static HashSet<Type> GetSupportedReferenceTypes(GameVersion version, bool isYYC)
+        {
+            HashSet<Type> supportedTypes = new();
+
+            // Filter out code-related input types, because YYC game = no code in "data.win"
+            IEnumerable<TypesForVersion[]> typeMapSrc;
+            if (isYYC)
+                typeMapSrc = typeMap.ExceptBy(CodeTypes, x => x.Key).Select(x => x.Value);
+            else
+                typeMapSrc = typeMap.Values;
+
+            foreach (var versions in typeMapSrc)
+            {
+                foreach (var typesForVersion in versions)
+                {
+                    bool isAtLeast = version.CompareTo(typesForVersion.Version) >= 0;
+                    bool isAboveMost = version.CompareTo(typesForVersion.BeforeVersion) >= 0;
+
+                    if (!isAtLeast || isAboveMost)
+                        continue;
+
+                    foreach ((Type type, string displayName) in typesForVersion.Types)
+                    {
+                        if (isYYC && CodeTypes.Contains(type))
+                            continue;
+
+                        supportedTypes.Add(type);
+                    }
+                }
+            }
+
+            return supportedTypes;
         }
     }
 }

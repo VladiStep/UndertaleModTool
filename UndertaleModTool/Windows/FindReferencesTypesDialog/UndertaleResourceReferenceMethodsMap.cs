@@ -14,51 +14,27 @@ namespace UndertaleModTool.Windows
 {
     public class HashSetTypesOverride : HashSet<Type>
     {
-        private static bool containsEverything, isYYC;
-        private static Dictionary<Type, PredicateForVersion[]> typeMap;
-        private static UndertaleData gameData;
-        private static GameVersion gameVersion;
-        private static byte bytecodeVer;
+        private static bool containsEverything;
+        private static HashSet<Type> supportedTypes;
 
-        public static void MakeContainEverything(UndertaleData gameData, Dictionary<Type, PredicateForVersion[]> typeMap)
+        public static void MakeContainEverything(GameVersion version, bool isYYC)
         {
             containsEverything = true;
-            HashSetTypesOverride.typeMap = typeMap;
-            HashSetTypesOverride.gameData = gameData;
-
-            if (gameData is null)
-                return;
-
-            isYYC = gameData.Code is null;
-            gameVersion = new(gameData.GeneralInfo);
-            bytecodeVer = gameData.GeneralInfo.BytecodeVersion;
-        }
-
-        private static bool IsTypeSupported(Type assetType)
-        {
-            if (typeMap is null || gameVersion == default)
-                return false;
-
-            // TODO
-            throw new NotImplementedException();
+            supportedTypes = UndertaleResourceReferenceMap.GetSupportedReferenceTypes(version, isYYC);
         }
 
         public new bool Contains(Type item)
         {
-            if (!containsEverything)
-                return base.Contains(item);
+            if (containsEverything)
+                return supportedTypes.Contains(item);
 
-            return !isYYC || !UndertaleResourceReferenceMap.CodeTypes.Contains(item)
-                   || IsTypeSupported(item);
+            return base.Contains(item);
         }
 
         public static void Restore()
         {
             containsEverything = false;
-            gameData = null;
-            isYYC = false;
-            gameVersion = default;
-            bytecodeVer = 0;
+            supportedTypes = null;
         }
     }
 
@@ -68,7 +44,6 @@ namespace UndertaleModTool.Windows
 
         public GameVersion Version { get; set; }
         public GameVersion BeforeVersion { get; set; } = new((uint.MaxValue, uint.MaxValue, uint.MaxValue), byte.MaxValue);
-        public bool DisableForLTS2022 { get; set; } = false;
         public PredicateDelegate Predicate { get; set; }
     }
 
@@ -213,8 +188,7 @@ namespace UndertaleModTool.Windows
                     },
                     new PredicateForVersion()
                     {
-                        Version = (2023, 2, 0),
-                        DisableForLTS2022 = true,
+                        Version = (2023, 2, 0), // Not present if it's LTS 2022
                         Predicate = (objSrc, types, checkOne) =>
                         {
                             if (!types.Contains(typeof(UndertaleParticleSystemEmitter)))
@@ -1072,8 +1046,7 @@ namespace UndertaleModTool.Windows
                     },
                     new PredicateForVersion()
                     {
-                        Version = (2023, 2, 0),
-                        DisableForLTS2022 = true,
+                        Version = (2023, 2, 0), // Not present if it's LTS 2022
                         Predicate = (objSrc, types, checkOne) =>
                         {
                             if (objSrc is not UndertaleString obj)
@@ -1549,8 +1522,7 @@ namespace UndertaleModTool.Windows
                 {
                     new PredicateForVersion()
                     {
-                        Version = (2023, 2, 0),
-                        DisableForLTS2022 = true,
+                        Version = (2023, 2, 0), // Not present if it's LTS 2022
                         Predicate = (objSrc, types, checkOne) =>
                         {
                             if (!types.Contains(typeof(UndertaleRoom.ParticleSystemInstance)))
@@ -1590,8 +1562,7 @@ namespace UndertaleModTool.Windows
                 {
                     new PredicateForVersion()
                     {
-                        Version = (2023, 2, 0),
-                        DisableForLTS2022 = true,
+                        Version = (2023, 2, 0), // Not present if it's LTS 2022
                         Predicate = (objSrc, types, checkOne) =>
                         {
                             if (objSrc is not UndertaleParticleSystemEmitter obj)
@@ -1622,9 +1593,25 @@ namespace UndertaleModTool.Windows
             }
         };
 
+        public static void SetCurrentGameData(UndertaleData data)
+        {
+            UndertaleResourceReferenceMethodsMap.data = data;
+        }
+        public static void ClearCurrentGameData()
+        {
+            UndertaleResourceReferenceMethodsMap.data = null;
+        }
 
-
+        // For singular use, sets and clears the current game data.
         public static Dictionary<string, List<object>> GetReferencesOfObject(object obj, UndertaleData data, HashSetTypesOverride types, bool checkOne = false)
+        {
+            SetCurrentGameData(data);
+            var result = GetReferencesOfObject(obj, types, checkOne);
+            ClearCurrentGameData();
+
+            return result;
+        }
+        public static Dictionary<string, List<object>> GetReferencesOfObject(object obj, HashSetTypesOverride types, bool checkOne = false)
         {
             if (obj is null)
                 return null;
@@ -1632,37 +1619,31 @@ namespace UndertaleModTool.Windows
             if (!typeMap.TryGetValue(obj.GetType(), out PredicateForVersion[] predicatesForVer))
                 return null;
 
-            UndertaleResourceReferenceMethodsMap.data = data;
-
             bool onlyEmptyResult = true;
 
             GameVersion ver = new(data.GeneralInfo);
             Dictionary<string, List<object>> outDict = new();
             foreach (var predicateForVer in predicatesForVer)
             {
-                bool isAtLeast = predicateForVer.Version.CompareTo(ver) <= 0;
-                bool isAboveMost = predicateForVer.BeforeVersion.CompareTo(ver) <= 0;
+                bool isAtLeast = ver.CompareTo(predicateForVer.Version) >= 0;
+                bool isAboveMost = ver.CompareTo(predicateForVer.BeforeVersion) >= 0;
 
-                bool disableDueToLTS = false;
-                if (data.GeneralInfo.Branch == UndertaleGeneralInfo.BranchType.LTS2022_0)
-                    disableDueToLTS = predicateForVer.DisableForLTS2022;
+                if (!isAtLeast || isAboveMost)
+                    continue;
 
-                if (isAtLeast && !isAboveMost && !disableDueToLTS)
+                var result = predicateForVer.Predicate(obj, types, checkOne);
+                if (result is null)
                 {
-                    var result = predicateForVer.Predicate(obj, types, checkOne);
-                    if (result is null)
-                    {
-                        onlyEmptyResult = false;
-                        continue;
-                    }
-                    if (onlyEmptyResult && result == emptyResultArr)
-                        continue;
-
                     onlyEmptyResult = false;
+                    continue;
+                }
+                if (onlyEmptyResult && result == emptyResultArr)
+                    continue;
 
-                    foreach (var entry in result)
-                        outDict.Add(entry.Key, new(entry.Value));
-                }  
+                onlyEmptyResult = false;
+
+                foreach (var entry in result)
+                    outDict.Add(entry.Key, new(entry.Value));
             }
 
             if (onlyEmptyResult)
@@ -1675,7 +1656,7 @@ namespace UndertaleModTool.Windows
 
         public static async Task<Dictionary<string, List<object>>> GetUnreferencedObjects(UndertaleData data, Dictionary<Type, string> typesDict)
         {
-            UndertaleResourceReferenceMethodsMap.data = data;
+            SetCurrentGameData(data);
 
             Dictionary<string, List<object>> outDict = new();
 
@@ -1733,7 +1714,9 @@ namespace UndertaleModTool.Windows
                 {
                     ignoreArgumentsVar = true;
 
-                    HashSetTypesOverride.MakeContainEverything(data, typeMap);
+                    GameVersion version = new(data.GeneralInfo);
+                    bool isYYC = data.Code is null;
+                    HashSetTypesOverride.MakeContainEverything(version, isYYC);
 
                     var assetsPart = Partitioner.Create(0, assets.Count);
 
@@ -1746,7 +1729,7 @@ namespace UndertaleModTool.Windows
                             for (int i = range.Item1; i < range.Item2; i++)
                             {
                                 var asset = assets[i];
-                                var assetReferences = GetReferencesOfObject(asset.Item1, data, new HashSetTypesOverride(), true);
+                                var assetReferences = GetReferencesOfObject(asset.Item1, new HashSetTypesOverride(), true);
                                 if (assetReferences is null)
                                 {
                                     if (resultDict.TryGetValue(asset.Item2, out var list))
@@ -1810,7 +1793,8 @@ namespace UndertaleModTool.Windows
                 stringReferences = null;
                 funcReferences = null;
                 variReferences = null;
-
+                
+                ClearCurrentGameData();
                 HashSetTypesOverride.Restore();
             }
 
