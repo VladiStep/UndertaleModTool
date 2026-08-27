@@ -24,9 +24,9 @@ namespace UndertaleModTool.Windows
             // The asset types that were introduced in GM 2023+ are not available in LTS 2022.
             // It seems obvious, but the general info says that it's a GM 2023+ for a LTS 2022 game.
             // For example, particle systems - they are missing in LTS 2022, even if the general info says it's GM 2023.6.
-            // So we treat that version as GM 2022.0, as it should be
+            // So we treat that version as GM 2022.9, as it should be
             if (gameInfo.Branch == UndertaleGeneralInfo.BranchType.LTS2022_0)
-                GameMakerVersion = (2022, 0, 0);
+                GameMakerVersion = (2022, 9, 0);
         }
 
         public bool HasGMVersion => GameMakerVersion.HasValue;
