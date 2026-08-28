@@ -500,7 +500,7 @@ namespace UndertaleModTool.Windows
             { typeof(UndertaleParticleSystemEmitter), ("Particle system emitters", (2023, 2, 0)) }
         };
         private static Dictionary<Type, string> referenceableTypes;
-        private static GameVersion currVersion;
+        private static (GameVersion Version, bool IsYYC) currVerState;
         
         public static readonly HashSet<Type> CodeTypes = new()
         {
@@ -538,7 +538,8 @@ namespace UndertaleModTool.Windows
 
         public static Dictionary<Type, string> GetReferenceableTypes(GameVersion version, bool isYYC)
         {
-            if (version == currVersion && currVersion != default)
+            if (version == currVerState.Version && currVerState != default
+                && isYYC == currVerState.IsYYC)
                 return referenceableTypes;
 
             // Filter out code-related types, because YYC game = no code in "data.win"
@@ -550,7 +551,7 @@ namespace UndertaleModTool.Windows
 
             referenceableTypes = typesOrigSrc.Where(x => x.Value.Item2.CompareTo(version) <= 0)
                                              .ToDictionary(x => x.Key, x => x.Value.Item1);
-            currVersion = version;
+            currVerState = (version, isYYC);
 
             if (referenceableTypes.Count == 0)
                 return referenceableTypes;
