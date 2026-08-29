@@ -1673,32 +1673,36 @@ namespace UndertaleModTool.Windows
                 assets.AddRange(list.Item1.Cast<UndertaleResource>()
                                           .Select(x => (x, list.Item2)));
 
-            stringReferences = new();
-            funcReferences = new();
-            variReferences = new();
-            foreach (var code in data.Code)
+            // If it's not a YYC game
+            if (data.Code is not null)
             {
-                var strings = new HashSet<UndertaleString>();
-                var functions = new HashSet<UndertaleFunction>();
-                var variables = new HashSet<UndertaleVariable>();
-                foreach (var inst in code.Instructions)
+                stringReferences = new();
+                funcReferences = new();
+                variReferences = new();
+                foreach (var code in data.Code)
                 {
-                    if (inst.ValueString?.Resource is UndertaleString str)
-                        strings.Add(str);
+                    var strings = new HashSet<UndertaleString>();
+                    var functions = new HashSet<UndertaleFunction>();
+                    var variables = new HashSet<UndertaleVariable>();
+                    foreach (var inst in code.Instructions)
+                    {
+                        if (inst.ValueString?.Resource is UndertaleString str)
+                            strings.Add(str);
 
-                    if (inst.ValueVariable is UndertaleVariable variable)
-                        variables.Add(variable);
+                        if (inst.ValueVariable is UndertaleVariable variable)
+                            variables.Add(variable);
 
-                    if (inst.ValueFunction is UndertaleFunction function)
-                        functions.Add(function);
+                        if (inst.ValueFunction is UndertaleFunction function)
+                            functions.Add(function);
+                    }
+
+                    if (strings.Count != 0)
+                        stringReferences[code] = strings;
+                    if (functions.Count != 0)
+                        funcReferences[code] = functions;
+                    if (variables.Count != 0)
+                        variReferences[code] = variables;
                 }
-
-                if (strings.Count != 0)
-                    stringReferences[code] = strings;
-                if (functions.Count != 0)
-                    funcReferences[code] = functions;
-                if (variables.Count != 0)
-                    variReferences[code] = variables;
             }
 
             mainWindow.IsEnabled = false;
