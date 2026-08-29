@@ -2130,6 +2130,11 @@ namespace UndertaleModTool
         {
             scriptDialog?.TryHide();
         }
+        public void CloseProgressBar()
+        {
+            scriptDialog?.TryClose();
+            scriptDialog = null;
+        }
 
         public void AddProgress(int amount)
         {
@@ -3112,12 +3117,12 @@ result in loss of work.");
             // Try to get index
             int foundIndex = obj is UndertaleResource res ? Data.IndexOf(res, false) : -1;
 
-			// Determine ID
-			string idString;
+            // Determine ID
+            string idString;
             if (foundIndex == -2)
-			{	
+            {	
                 idString = "None";
-        	}
+            }
             else if (foundIndex == -1)
             {
                 idString = "N/A";
