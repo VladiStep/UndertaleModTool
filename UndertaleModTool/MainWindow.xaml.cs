@@ -2307,13 +2307,14 @@ namespace UndertaleModTool
             ScriptExecutionSuccess = true;
             ScriptErrorMessage = "";
             ScriptErrorType = "";
+
             InitializeScriptDialog();
-            this.IsEnabled = false; // Prevent interaction while the script is running.
+            this.IsEnabled = false;   // Prevent interaction while the script is running.
 
             await RunScriptNow(path); // Runs the script now.
-            HideProgressBar(); // Hide the progress bar.
-            scriptDialog = null;
-            this.IsEnabled = true; // Allow interaction again.
+
+            CloseProgressBar();       // Closes the progress bar entirely.
+            this.IsEnabled = true;    // Allow interaction again.
         }
 
         private async Task RunScriptNow(string path)
