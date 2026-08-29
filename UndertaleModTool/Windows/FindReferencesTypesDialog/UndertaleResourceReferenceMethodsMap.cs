@@ -1651,6 +1651,10 @@ namespace UndertaleModTool.Windows
             if (outDict.Count == 0)
                 return null;
 
+            // Sort the output dictionary by the asset type name, for consistent order
+            outDict = outDict.OrderBy(x => x.Key)
+                             .ToDictionary(x => x.Key, x => x.Value);
+
             return outDict;
         }
 
@@ -1660,6 +1664,7 @@ namespace UndertaleModTool.Windows
 
             Dictionary<string, List<object>> outDict = new();
 
+            Dictionary<object, int> assetIndexes = new();
             List<(IList, string)> assetLists = new();
             foreach (var typePair in typesDict)
             {
@@ -1668,10 +1673,16 @@ namespace UndertaleModTool.Windows
 
                 assetLists.Add((resList, typePair.Value));
             }
-            List<(UndertaleResource, string)> assets = new(assetLists.Select(x => x.Item1.Count).Sum());
+            List<(UndertaleResource, string)> assets = new(assetLists.Sum(x => x.Item1.Count));
             foreach (var list in assetLists)
-                assets.AddRange(list.Item1.Cast<UndertaleResource>()
-                                          .Select(x => (x, list.Item2)));
+            {
+                for (int i = 0; i < list.Item1.Count; i++)
+                {
+                    var asset = list.Item1[i];
+                    assetIndexes[asset] = i;
+                    assets.Add(((UndertaleResource)asset, list.Item2));
+                }
+            }
 
             // If it's not a YYC game
             if (data.Code is not null)
@@ -1712,7 +1723,7 @@ namespace UndertaleModTool.Windows
                 mainWindow.SetProgressBar(null, "Assets", 0, assets.Count);
                 mainWindow.StartProgressBarUpdater();
 
-                List<Dictionary<string, List<object>>> dicts = new();
+                ConcurrentBag<Dictionary<string, List<object>>> dicts = new();
 
                 if (assets.Count > 0) // A Partitioner can't be created on an empty list.
                 {
@@ -1787,6 +1798,18 @@ namespace UndertaleModTool.Windows
                         }
                     }
                 }
+
+                // Sort each asset list by the asset ID (the index in the source asset list)
+                foreach (var assetList in outDict.Values)
+                {
+                    assetList.Sort((left, right) => {
+                        return assetIndexes[left].CompareTo(assetIndexes[right]);
+                    });
+                }
+
+                // Also sort the output dictionary by the asset type name (so the asset group order is also consistent)
+                outDict = outDict.OrderBy(x => x.Key)
+                                 .ToDictionary(x => x.Key, x => x.Value);
             }
             finally
             {
